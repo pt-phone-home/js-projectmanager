@@ -11,9 +11,52 @@ class DOMHelper {
   }
 }
 
-class Tooltip {}
+class Component {
+  constructor(hostElementId, insertBefore = false) {
+    if (hostElementId) {
+      this.hostElementId = document.getElementById(hostElementId);
+    } else {
+      this.hostElementId = document.body;
+    }
+
+    this.insertBefore = insertBefore;
+  }
+  detach() {
+    if (this.element) {
+      this.element.remove();
+    }
+  }
+  show() {
+    this.hostElementId.insertAdjacentElement(
+      this.insertBefore ? "afterbegin" : "beforeend",
+      this.element,
+    );
+    document.body.append(this.element);
+  }
+}
+
+class Tooltip extends Component {
+  constructor(closeNotifierFunction) {
+    super("active-projects", true);
+    this.closeNotifier = closeNotifierFunction;
+    this.create();
+  }
+  closeTooltip() {
+    this.detach();
+    this.closeNotifier();
+  }
+
+  create() {
+    const tooltipElement = document.createElement("div");
+    tooltipElement.className = "card";
+    tooltipElement.textContent = "DUMMY";
+    tooltipElement.addEventListener("click", this.closeTooltip.bind(this));
+    this.element = tooltipElement;
+  }
+}
 
 class ProjectItem {
+  hasActiveTooltip = false;
   constructor(id, updateProjectListsFunction, type) {
     this.id = id;
     this.updateProjectListsHandler = updateProjectListsFunction;
@@ -21,7 +64,24 @@ class ProjectItem {
     this.connectSwitchButton(type);
   }
 
-  connectMoreInfoButton() {}
+  showMoreInfoHandler() {
+    if (this.hasActiveTooltip) {
+      return;
+    }
+    const tooltip = new Tooltip(() => {
+      this.hasActiveTooltip = false;
+    });
+    tooltip.show();
+    this.hasActiveTooltip = true;
+  }
+
+  connectMoreInfoButton() {
+    const projectItemElement = document.getElementById(this.id);
+    const moreInfoBtn = projectItemElement.querySelector(
+      "button:first-of-type",
+    );
+    moreInfoBtn.addEventListener("click", this.showMoreInfoHandler);
+  }
 
   connectSwitchButton(type) {
     const projectItemElement = document.getElementById(this.id);
